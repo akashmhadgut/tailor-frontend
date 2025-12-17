@@ -313,7 +313,12 @@ alert("Failed to save order");
                   <div key={idx} className="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-200 group hover:border-primary-200 transition-colors">
                     <div className="flex items-center gap-2 overflow-hidden">
                         <span className="text-lg">📄</span>
-                        <a href={`${BASE_URL}${file}`} target="_blank" rel="noreferrer" className="text-sm text-gray-700 hover:text-primary-600 font-medium truncate max-w-[200px]">
+                        <a 
+                          href={file.startsWith('http') ? file : `${BASE_URL}${file}`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-sm text-gray-700 hover:text-primary-600 font-medium truncate max-w-[200px]"
+                        >
                             {file.split('/').pop()}
                         </a>
                     </div>
