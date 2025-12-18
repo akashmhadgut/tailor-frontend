@@ -75,8 +75,32 @@ export const KanbanProvider = ({ children }) => {
     }
   };
 
+  const deleteOrder = async (orderId) => {
+    // Optimistic Delete
+    const originalOrders = [...orders];
+    setOrders((prev) => prev.filter((order) => order._id !== orderId));
+
+    try {
+      await api.delete(`/orders/${orderId}`);
+    } catch (error) {
+      setOrders(originalOrders);
+      console.error("Error deleting order", error);
+      alert("Failed to delete order");
+    }
+  };
+
   const setFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      date: '',
+      dateType: 'all',
+      tag: 'all'
+    });
   };
 
   const filteredOrders = useMemo(() => {
@@ -168,6 +192,8 @@ export const KanbanProvider = ({ children }) => {
     setFilter,
     addOrder,
     updateOrderStatus,
+    deleteOrder,
+    resetFilters,
     filteredOrders,
     refreshBoard: fetchData,
     loading,

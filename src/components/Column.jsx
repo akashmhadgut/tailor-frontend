@@ -19,7 +19,7 @@ const Column = ({ column, onEditOrder }) => {
 
   return (
     <div 
-      className="flex flex-col flex-1 w-full md:w-auto min-w-[220px] md:min-w-[300px] bg-gray-50/50 rounded-xl p-3 md:p-4 border border-gray-100 transition-colors hover:bg-gray-50"
+      className="flex flex-col flex-1 w-full md:w-auto min-w-[220px] md:min-w-[260px] lg:min-w-[300px] bg-gray-50/50 rounded-xl p-3 md:p-4 border border-gray-100 transition-colors hover:bg-gray-50"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
