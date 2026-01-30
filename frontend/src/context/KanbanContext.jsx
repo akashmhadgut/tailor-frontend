@@ -14,13 +14,16 @@ export const useKanban = () => {
 export const KanbanProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [columns, setColumns] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [customersEnabled, setCustomersEnabled] = useState(true);
   const [view, setView] = useState('board'); 
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
     date: '',
     dateType: 'all', // 'all', 'today', 'week', 'month', 'custom'
-    tag: 'all' // 'all', 'Urgent', 'Delicate', etc.
+    tag: 'all', // 'all', 'Urgent', 'Delicate', etc.
+    customer: ''
   });
   const [loading, setLoading] = useState(true);
 
@@ -33,8 +36,39 @@ export const KanbanProvider = ({ children }) => {
       ]);
       setColumns(statusRes.data);
       setOrders(ordersRes.data);
+
+      // Customers endpoint may not exist on older/deployed backends — handle 404 gracefully
+      try {
+        const customersRes = await api.get('/customers');
+        setCustomers(customersRes.data);
+        setCustomersEnabled(true);
+      } catch (err) {
+        if (err.response && err.response.status === 404) {
+          console.warn('/customers endpoint not found on server — continuing with empty customers list');
+          setCustomers([]);
+          setCustomersEnabled(false);
+        } else {
+          console.error('Failed to fetch customers', err);
+          setCustomers([]);
+          setCustomersEnabled(false);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch data", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchOrders = useCallback(async (customerId) => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (customerId) params.customer = customerId;
+      const ordersRes = await api.get('/orders', { params });
+      setOrders(ordersRes.data);
+    } catch (err) {
+      console.error('Failed to fetch orders', err);
     } finally {
       setLoading(false);
     }
@@ -47,6 +81,16 @@ export const KanbanProvider = ({ children }) => {
     }
   }, [fetchData]);
 
+  // Refetch orders when customer filter changes
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    // If filters has a customer property, use it. Otherwise do nothing here.
+    if (filters.customer) {
+      fetchOrders(filters.customer);
+    }
+  }, [filters.customer, fetchOrders]);
+
   const addOrder = async (newOrder) => {
     try {
       const { data } = await api.post('/orders', newOrder);
@@ -57,6 +101,37 @@ export const KanbanProvider = ({ children }) => {
       throw error;
     }
   };
+
+  const addCustomer = async (customer) => {
+    try {
+      if (!customersEnabled) {
+        const e = new Error('Customers endpoint not available on server');
+        e.isEndpointMissing = true;
+        throw e;
+      }
+      const { data } = await api.post('/customers', customer);
+      setCustomers((prev) => [data, ...prev]);
+      return data;
+    } catch (error) {
+      console.error('Error adding customer', error);
+      throw error;
+    }
+  };
+
+  const updateCustomer = async (customerId, updatedData) => {
+    try {
+      if (!customersEnabled) return;
+      const { data } = await api.patch(`/customers/${customerId}`, updatedData);
+      setCustomers((prev) => 
+        prev.map(c => c._id === customerId ? data : c)
+      );
+      return data;
+    } catch (error) {
+      console.error('Error updating customer', error);
+      throw error;
+    }
+  };
+
 
   const updateOrderStatus = async (orderId, newStatusVal) => {
     // Optimistic Update
@@ -99,7 +174,8 @@ export const KanbanProvider = ({ children }) => {
       status: 'all',
       date: '',
       dateType: 'all',
-      tag: 'all'
+      tag: 'all',
+      customer: ''
     });
   };
 
@@ -107,7 +183,8 @@ export const KanbanProvider = ({ children }) => {
     return orders.filter((order) => {
       const matchesSearch =
         order.orderId.toLowerCase().includes(filters.search.toLowerCase()) ||
-        order.customerName.toLowerCase().includes(filters.search.toLowerCase());
+        order.customerName.toLowerCase().includes(filters.search.toLowerCase()) ||
+        (order.customerPhone && order.customerPhone.toLowerCase().includes(filters.search.toLowerCase()));
       
       const matchesStatus =
         filters.status === 'all' || order.status === filters.status;
@@ -186,10 +263,14 @@ export const KanbanProvider = ({ children }) => {
   const value = {
     orders,
     columns,
+    customers,
+    customersEnabled,
     view,
     setView,
     filters,
     setFilter,
+    addCustomer,
+    updateCustomer,
     addOrder,
     updateOrderStatus,
     deleteOrder,

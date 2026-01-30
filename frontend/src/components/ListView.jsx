@@ -304,7 +304,7 @@ const ListView = ({ onEditOrder }) => {
                   <td className="p-4 text-center">
                    <div className="flex items-center justify-center gap-2">
                         <button 
-                        onClick={() => onEditOrder(order)}
+                        onClick={() => onEditOrder(order, true)}
                         className="text-gray-400 hover:text-blue-600 bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-200 font-medium text-xs px-3 py-1.5 rounded-lg transition-all shadow-sm"
                         >
                         Edit
