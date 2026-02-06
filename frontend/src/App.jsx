@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { KanbanProvider, useKanban } from './context/KanbanContext';
 import Navbar from './components/Navbar';
 import Board from './components/Board';
-import ListView from './components/Listview';
+import ListView from './components/ListView';
 import OrderModal from './components/OrderModal';
 import OrderDetails from './components/OrderDetails';
 import LoginPage from './pages/LoginPage';
