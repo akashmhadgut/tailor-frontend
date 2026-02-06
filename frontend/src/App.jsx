@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { KanbanProvider, useKanban } from './context/KanbanContext';
 import Navbar from './components/Navbar';
 import Board from './components/Board';
 import ListView from './components/Listview';
 import OrderModal from './components/OrderModal';
+import OrderDetails from './components/OrderDetails';
 import LoginPage from './pages/LoginPage';
 
 const ProtectedRoute = ({ children }) => {
@@ -17,11 +18,11 @@ const ProtectedRoute = ({ children }) => {
 
 const Dashboard = () => {
   const { view, loading } = useKanban();
-  const [modalState, setModalState] = useState({ isOpen: false, orderToEdit: null });
+  const [modalState, setModalState] = useState({ isOpen: false, orderToEdit: null, initialReadOnly: false });
 
-  const openAddModal = () => setModalState({ isOpen: true, orderToEdit: null });
-  const openEditModal = (order) => setModalState({ isOpen: true, orderToEdit: order });
-  const closeModal = () => setModalState({ isOpen: false, orderToEdit: null });
+  const openAddModal = () => setModalState({ isOpen: true, orderToEdit: null, initialReadOnly: false });
+  const openEditModal = (order, forceEdit = false) => setModalState({ isOpen: true, orderToEdit: order, initialReadOnly: !forceEdit });
+  const closeModal = () => setModalState({ isOpen: false, orderToEdit: null, initialReadOnly: false });
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -43,6 +44,7 @@ const Dashboard = () => {
         <OrderModal 
           onClose={closeModal} 
           orderToEdit={modalState.orderToEdit} 
+          initialReadOnly={modalState.initialReadOnly}
         />
       )}
     </div>

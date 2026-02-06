@@ -4,7 +4,6 @@ import { useKanban } from '../context/KanbanContext';
 
 const Column = ({ column, onEditOrder }) => {
   const { filteredOrders, updateOrderStatus } = useKanban();
-  // Match by value (slug), not id
   const columnOrders = filteredOrders.filter(order => order.status === column.value);
 
   const handleDragOver = (e) => {
@@ -17,27 +16,42 @@ const Column = ({ column, onEditOrder }) => {
     updateOrderStatus(orderId, column.value);
   };
 
+  const key = (column.value || column.id || (column.title || '').toLowerCase().replace(/\s+/g, '_')).toLowerCase();
+  const colorClassMap = {
+    new: 'col-new',
+    orders: 'col-new',
+    stitching_in_progress: 'col-process',
+    fittings: 'col-task-blue',
+    done: 'col-completed',
+    deliveries: 'col-completed',
+    new_task_blue: 'col-task-blue',
+    ready: 'col-task-red',
+    new_task_red: 'col-task-red',
+    default: 'col-new'
+  };
+
+  const colorClass = colorClassMap[key] || colorClassMap.default;
+
   return (
-    <div 
-      className="flex flex-col flex-1 w-full md:w-auto min-w-[220px] md:min-w-[260px] lg:min-w-[300px] bg-gray-50/50 rounded-xl p-3 md:p-4 border border-gray-100 transition-colors hover:bg-gray-50"
+    <div
+      className={`kanban-column ${colorClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div className="flex justify-between items-center mb-4 px-1">
-        <h3 className="text-base font-semibold text-gray-800 tracking-tight">{column.title}</h3>
-        <span className="bg-white border border-gray-200 text-gray-500 text-xs font-medium px-2.5 py-0.5 rounded-full shadow-sm">
+      <div className="kanban-column-header">
+        <h3 className="kanban-column-title">{column.title}</h3>
+        <div className="kanban-column-count-badge">
           {columnOrders.length}
-        </span>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-3 min-h-[160px] pr-1 pb-2 custom-scrollbar">
+      <div className="kanban-column-body">
         {columnOrders.map(order => (
-          <Card key={order._id} order={order} onEdit={onEditOrder} />
+          <Card key={order._id || order.id || order.orderId} order={order} onEdit={onEditOrder} columnKey={key} />
         ))}
         {columnOrders.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm bg-gray-50/30">
-            <span className="mb-1">Empty Column</span>
-            <span className="text-xs text-gray-300">Drag items here</span>
+          <div className="flex flex-col items-center justify-center w-full p-4 border border-dashed border-gray-400/30 rounded-lg text-gray-500 text-xs">
+            Empty
           </div>
         )}
       </div>
