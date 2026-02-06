@@ -240,42 +240,226 @@ const OrderModal = ({ onClose, orderToEdit = null, initialReadOnly = true }) => 
           </div>
 
           <div className="p-4 bg-gray-50 rounded-xl space-y-4 border border-gray-100">
-
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 space-y-1">
-                <label className="text-sm font-medium text-gray-700">Customer Name</label>
-                <input 
-                  type="text" 
-                  name="customerName"
-                  className={`form-input focus:ring-primary-500 bg-gray-50 cursor-not-allowed border-transparent`}
-                  placeholder="Enter Name"
-                  value={formData.customerName}
-                  onChange={handleChange}
-                  disabled={true}
-                />
+            {!isEditMode && (
+              <div className="space-y-1 relative border-b border-gray-200 pb-4 mb-2">
+                <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                  <span className="w-5 h-5 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full text-[10px]">🔍</span>
+                  Quick Search Customer
+                </label>
+                
+                <div className="relative group">
+                  <input
+                    type="text"
+                    placeholder="Search by name or phone..."
+                    className="form-input pl-10 pr-10 bg-white border-gray-300 focus:border-primary-500 transition-all"
+                    value={customerSearch}
+                    onChange={(e) => {
+                      setCustomerSearch(e.target.value);
+                      setShowCustomerDropdown(true);
+                    }}
+                    onFocus={() => setShowCustomerDropdown(true)}
+                  />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  </div>
+                  
+                  {customerSearch && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setCustomerSearch('');
+                        setShowCustomerDropdown(true);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-100 transition-all"
+                    >
+                      &times;
+                    </button>
+                  )}
+                  
+                  {showCustomerDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowCustomerDropdown(false)}></div>
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-20 max-h-64 overflow-y-auto overflow-x-hidden animate-scale-in">
+                        <div className="p-2 border-b border-gray-50 sticky top-0 bg-white/90 backdrop-blur-md z-10">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCustomer('__new');
+                              setFormData(prev => ({ ...prev, customer: '', customerName: '', customerPhone: '', customerAddress: '' }));
+                              setCustomerSearch('');
+                              setShowCustomerDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-sm font-bold text-primary-600 hover:bg-primary-50 rounded-lg flex items-center justify-between group transition-colors"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg">+</span> Create New Profile
+                            </span>
+                            <span className="text-[10px] bg-primary-100 text-primary-700 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">Quick Add</span>
+                          </button>
+                        </div>
+                        
+                        <div className="p-1">
+                          {(() => {
+                            const filtered = customers.filter(c => 
+                              !customerSearch || 
+                              customerSearch.toLowerCase() === (formData.customerName || '').toLowerCase() ||
+                              c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+                              c.phone.includes(customerSearch)
+                            );
+                            
+                            return filtered.length === 0 ? (
+                              <div className="p-6 text-center text-gray-400">
+                                <p className="text-sm font-medium">No customers found</p>
+                                <p className="text-[10px] mt-1">Try a different name or number</p>
+                              </div>
+                            ) : (
+                              filtered.map(c => (
+                                <button
+                                  key={c._id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCustomer(c._id);
+                                    setFormData(prev => ({ 
+                                      ...prev, 
+                                      customer: c._id, 
+                                      customerName: c.name,
+                                      customerPhone: c.phone,
+                                      customerAddress: c.address || ''
+                                    }));
+                                    setCustomerSearch(c.name);
+                                    setShowCustomerDropdown(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-3 rounded-lg group transition-all mb-0.5 ${selectedCustomer === c._id ? 'bg-primary-50 border-l-4 border-primary-500 pl-2' : 'hover:bg-gray-50'}`}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className={`font-bold text-sm ${selectedCustomer === c._id ? 'text-primary-800' : 'text-gray-800 group-hover:text-primary-700'}`}>{c.name}</p>
+                                      <p className="text-[11px] font-medium text-gray-500 mt-0.5 flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                        {c.phone}
+                                      </p>
+                                    </div>
+                                    {selectedCustomer === c._id && (
+                                      <span className="text-primary-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                      </span>
+                                    )}
+                                  </div>
+                                  {c.address && <p className="text-[10px] text-gray-400 truncate mt-1 pl-4 border-l border-gray-200">📍 {c.address}</p>}
+                                </button>
+                              ))
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 space-y-1">
-                <label className="text-sm font-medium text-gray-700">Phone Number</label>
-                <input 
-                  type="text" 
-                  name="customerPhone"
-                  className={`form-input focus:ring-primary-500 bg-gray-50 cursor-not-allowed border-transparent`}
-                  placeholder="Enter Phone"
-                  value={formData.customerPhone}
-                  onChange={handleChange}
-                  disabled={true}
-                />
-              </div>
-            </div>
+            )}
 
-            <div className="space-y-1 mt-2">
-              <label className="text-sm font-medium text-gray-700">Customer Address</label>
-              <div className="p-3 bg-gray-50/50 rounded-lg text-gray-800 text-sm whitespace-pre-wrap min-h-[46px] border border-gray-100 flex items-center">
-                {formData.customerAddress ? formData.customerAddress : (
-                  <span className="text-gray-400 italic">No address provided</span>
+            {isEditMode ? (
+              <>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Customer Name</label>
+                    <input 
+                      type="text" 
+                      name="customerName"
+                      className="form-input focus:ring-primary-500 bg-gray-50 cursor-not-allowed border-transparent"
+                      placeholder="Enter Name"
+                      value={formData.customerName}
+                      onChange={handleChange}
+                      disabled={true}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Phone Number</label>
+                    <input 
+                      type="text" 
+                      name="customerPhone"
+                      className="form-input focus:ring-primary-500 bg-gray-50 cursor-not-allowed border-transparent"
+                      placeholder="Enter Phone"
+                      value={formData.customerPhone}
+                      onChange={handleChange}
+                      disabled={true}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 mt-2">
+                  <label className="text-sm font-medium text-gray-700">Customer Address</label>
+                  <div className="p-3 bg-gray-50/50 rounded-lg text-gray-800 text-sm whitespace-pre-wrap min-h-[46px] border border-gray-100 flex items-center">
+                    {formData.customerAddress ? formData.customerAddress : (
+                      <span className="text-gray-400 italic">No address provided</span>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Customer Name</label>
+                    <input 
+                      type="text" 
+                      name="customerName"
+                      className={`form-input focus:ring-primary-500 ${isReadOnly ? 'bg-gray-50 cursor-not-allowed border-transparent' : 'border-gray-300'}`}
+                      placeholder="Enter Name"
+                      value={formData.customerName}
+                      onChange={handleChange}
+                      required={!isReadOnly}
+                      disabled={isReadOnly}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Phone Number</label>
+                    <input 
+                      type="text" 
+                      name="customerPhone"
+                      className={`form-input focus:ring-primary-500 ${isReadOnly ? 'bg-gray-50 cursor-not-allowed border-transparent' : 'border-gray-300'}`}
+                      placeholder="Enter Phone"
+                      value={formData.customerPhone}
+                      onChange={handleChange}
+                      required={!isReadOnly}
+                      disabled={isReadOnly}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 mt-2">
+                  <label className="text-sm font-medium text-gray-700">Customer Address</label>
+                  {isReadOnly ? (
+                    <div className="p-3 bg-gray-50/50 rounded-lg text-gray-800 text-sm whitespace-pre-wrap min-h-[46px] border border-gray-100 flex items-center">
+                      {formData.customerAddress ? formData.customerAddress : (
+                        <span className="text-gray-400 italic">No address provided</span>
+                      )}
+                    </div>
+                  ) : (
+                    <textarea 
+                      name="customerAddress"
+                      className="form-input min-h-[60px] focus:ring-primary-500 border-gray-300"
+                      placeholder="Enter Full Address"
+                      value={formData.customerAddress}
+                      onChange={handleChange}
+                      rows="2"
+                    />
+                  )}
+                </div>
+
+                {selectedCustomer === '__new' && !isReadOnly && (
+                  <div className="mt-2 p-4 bg-primary-50/30 rounded-xl border border-primary-100 animate-scale-in">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+                      <p className="text-xs font-bold text-primary-700 uppercase tracking-widest">New Customer Profile</p>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] text-gray-500 italic">Fill the fields above to complete the profile.</p>
+                    </div>
+                  </div>
                 )}
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
