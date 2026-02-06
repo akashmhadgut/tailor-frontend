@@ -157,7 +157,7 @@ const Navbar = ({ onOpenModal }) => {
   };
 
   // Check if any filter is active to conditionally show/highlight reset
-  const isFilterActive = filters.status !== 'all' || filters.dateType !== 'all' || filters.tag !== 'all';
+  const isFilterActive = filters.search !== '' || filters.status !== 'all' || filters.dateType !== 'all' || filters.tag !== 'all';
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
@@ -175,7 +175,7 @@ const Navbar = ({ onOpenModal }) => {
                         type="text" 
                         autoFocus
                         placeholder="Search orders..." 
-                        className="w-full pl-10 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-full focus:ring-1 focus:ring-inset focus:ring-primary-500 focus:border-primary-500 focus:outline-none text-gray-800 placeholder-gray-400 box-border transition-all"
+                        className="w-full pl-10 pr-10 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-primary-100 text-gray-800 placeholder-gray-400"
                         value={filters.search}
                         onChange={(e) => setFilter('search', e.target.value)}
                     />
@@ -224,7 +224,7 @@ const Navbar = ({ onOpenModal }) => {
               <input 
                 type="text" 
                 placeholder="Search..." 
-                className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-1 focus:ring-inset focus:ring-primary-500 focus:border-primary-500 outline-none w-32 lg:w-44 transition-all box-border"
+                className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-32 lg:w-44 transition-all"
                 value={filters.search}
                 onChange={(e) => setFilter('search', e.target.value)}
               />
