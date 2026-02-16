@@ -28,7 +28,7 @@ const LoginPage = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-            TailorTrack Admin
+            A-Track Admin
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Sign in to manage your orders
@@ -96,16 +96,11 @@ const LoginPage = () => {
                 <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Demo Credentials
-                </span>
+                
               </div>
             </div>
 
-            <div className="mt-6 text-center text-xs text-gray-500 bg-gray-50 py-3 rounded-lg border border-gray-200">
-              <p>Email: <span className="font-mono text-gray-700">admin@example.com</span></p>
-              <p className="mt-1">Password: <span className="font-mono text-gray-700">password123</span></p>
-            </div>
+           
           </div>
         </div>
       </div>

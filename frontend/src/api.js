@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Use Vite env var `VITE_API_URL` for local dev, fallback to hosted URL
+// Use a Vite env var `VITE_API_URL` for local dev, fallback to hosted URL
 export const BASE_URL = import.meta.env.VITE_API_URL || 'https://tailor-backend-f52f.onrender.com';
 
 const api = axios.create({
