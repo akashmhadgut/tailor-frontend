@@ -13,7 +13,7 @@ connectDB();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); ``
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api', apiRoutes);
@@ -31,7 +31,7 @@ setTimeout(() => {
                     layer.handle.stack.forEach((l) => {
                         if (l.route && l.route.path) {
                             const methods = Object.keys(l.route.methods).join(',').toUpperCase();
-                            routes.push(`${methods} ${layer.regexp && layer.regexp.source ? layer.regexp.source.replace('^\\','').replace('\\/?(?=\\/|$)','') : ''}${l.route.path}`);
+                            routes.push(`${methods} ${layer.regexp && layer.regexp.source ? layer.regexp.source.replace('^\\', '').replace('\\/?(?=\\/|$)', '') : ''}${l.route.path}`);
                         }
                     });
                 }

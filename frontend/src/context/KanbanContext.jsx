@@ -15,14 +15,15 @@ export const KanbanProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [columns, setColumns] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [systemTags, setSystemTags] = useState([]);
   const [customersEnabled, setCustomersEnabled] = useState(true);
   const [view, setView] = useState('board'); 
   const [filters, setFilters] = useState({
     search: '',
-    status: 'all',
+    status: [], // Empty array means 'all'
     date: '',
     dateType: 'all', // 'all', 'today', 'week', 'month', 'custom'
-    tag: 'all', // 'all', 'Urgent', 'Delicate', etc.
+    tag: [], // Empty array means 'all'
     customer: ''
   });
   const [loading, setLoading] = useState(true);
@@ -30,16 +31,18 @@ export const KanbanProvider = ({ children }) => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statusRes, ordersRes] = await Promise.all([
+      const [statusRes, ordersRes, tagsRes] = await Promise.all([
         api.get('/statuses'),
-        api.get('/orders')
+        api.get('/orders', { params: { limit: 100 } }), // Fetch reasonable chunk for now
+        api.get('/tags')
       ]);
-      setColumns(statusRes.data);
+      setColumns(statusRes.data.sort((a, b) => (a.order || 0) - (b.order || 0)));
       setOrders(ordersRes.data);
+      setSystemTags(tagsRes.data);
 
       // Customers endpoint may not exist on older/deployed backends — handle 404 gracefully
       try {
-        const customersRes = await api.get('/customers');
+        const customersRes = await api.get('/customers', { params: { limit: 100 } }); // Fetch reasonable chunk for now
         setCustomers(customersRes.data);
         setCustomersEnabled(true);
       } catch (err) {
@@ -133,21 +136,25 @@ export const KanbanProvider = ({ children }) => {
   };
 
 
-  const updateOrderStatus = async (orderId, newStatusVal) => {
+  const updateOrder = async (orderId, updatedFields) => {
     // Optimistic Update
     const originalOrders = [...orders];
     setOrders((prev) =>
       prev.map((order) =>
-        order._id === orderId ? { ...order, status: newStatusVal } : order
+        order._id === orderId ? { ...order, ...updatedFields } : order
       )
     );
 
     try {
-      await api.patch(`/orders/${orderId}`, { status: newStatusVal });
+      await api.patch(`/orders/${orderId}`, updatedFields);
     } catch (error) {
       setOrders(originalOrders); // Revert
-      console.error("Error updating status", error);
+      console.error("Error updating order", error);
     }
+  };
+
+  const updateOrderStatus = async (orderId, newStatusVal) => {
+    await updateOrder(orderId, { status: newStatusVal });
   };
 
   const deleteOrder = async (orderId) => {
@@ -171,10 +178,10 @@ export const KanbanProvider = ({ children }) => {
   const resetFilters = () => {
     setFilters({
       search: '',
-      status: 'all',
+      status: [],
       date: '',
       dateType: 'all',
-      tag: 'all',
+      tag: [],
       customer: ''
     });
   };
@@ -186,37 +193,22 @@ export const KanbanProvider = ({ children }) => {
         order.customerName.toLowerCase().includes(filters.search.toLowerCase()) ||
         (order.customerPhone && order.customerPhone.toLowerCase().includes(filters.search.toLowerCase()));
       
+      // Status Filter (Multiple)
       const matchesStatus =
-        filters.status === 'all' || order.status === filters.status;
+        !filters.status || filters.status.length === 0 || filters.status.includes('all') || filters.status.includes(order.status);
       
-      // Tag Filter
+      // Tag Filter (Multiple)
       const matchesTag = 
-        filters.tag === 'all' || (order.tags && order.tags.includes(filters.tag));
+        !filters.tag || filters.tag.length === 0 || filters.tag.includes('all') || 
+        (order.tags && order.tags.some(t => filters.tag.includes(t)));
 
       let matchesDate = true;
       const orderDate = new Date(order.deliveryDate);
       const today = new Date();
       
-      // Reset time parts for accurate comparison
       today.setHours(0, 0, 0, 0);
-      // orderDate is parsed from YYYY-MM-DD, usually defaults to UTC midnight if not careful, 
-      // but if we treat it as local string parsing or just use string comparison for today.
       
-      // Simplest way for 'YYYY-MM-DD' comparison
-      const orderDateString = order.deliveryDate;
-      const todayString = today.toLocaleDateString('en-CA'); // YYYY-MM-DD format in CA/SE/etc. or just manual
-
-      const getStartOfWeek = (d) => {
-        const date = new Date(d);
-        const day = date.getDay(); // 0 (Sun) to 6 (Sat)
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start if needed, or just standard
-        // Let's assume standard Sunday start for simplicity or user locale
-        const sunday = new Date(date.setDate(date.getDate() - day));
-        return sunday;
-      }
-
       if (filters.dateType === 'today') {
-         // Construct local YYYY-MM-DD
          const year = today.getFullYear();
          const month = String(today.getMonth() + 1).padStart(2, '0');
          const day = String(today.getDate()).padStart(2, '0');
@@ -227,12 +219,9 @@ export const KanbanProvider = ({ children }) => {
         const startOfWeek = new Date(current.setDate(current.getDate() - current.getDay()));
         const endOfWeek = new Date(current.setDate(current.getDate() - current.getDay() + 6));
         
-        // Reset times
         startOfWeek.setHours(0,0,0,0);
         endOfWeek.setHours(23,59,59,999);
         
-        // Order date (assuming YYYY-MM-DD is local midnight)
-        // We will append T00:00:00 to ensure it parses correctly as local if needed, OR matches strict
         const targetDate = new Date(order.deliveryDate + 'T00:00:00');
         matchesDate = targetDate >= startOfWeek && targetDate <= endOfWeek;
 
@@ -251,14 +240,8 @@ export const KanbanProvider = ({ children }) => {
   }, [orders, filters]);
 
   const availableTags = useMemo(() => {
-    const tags = new Set();
-    orders.forEach(order => {
-      if (order.tags && Array.isArray(order.tags)) {
-        order.tags.forEach(tag => tags.add(tag));
-      }
-    });
-    return Array.from(tags).sort();
-  }, [orders]);
+    return systemTags;
+  }, [systemTags]);
 
   const value = {
     orders,
@@ -272,6 +255,7 @@ export const KanbanProvider = ({ children }) => {
     addCustomer,
     updateCustomer,
     addOrder,
+    updateOrder,
     updateOrderStatus,
     deleteOrder,
     resetFilters,

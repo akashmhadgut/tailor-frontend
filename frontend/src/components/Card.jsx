@@ -2,150 +2,154 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useKanban } from '../context/KanbanContext';
 
 const Card = ({ order, onEdit }) => {
-  const { updateOrderStatus, columns } = useKanban();
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef(null);
+  const { updateOrderStatus, updateOrder, columns, availableTags } = useKanban();
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
+  // Colors for each status step in order (matching Figma design)
+  const STATUS_COLORS = [
+    '#D4CDFF', // New - Purple
+    '#F8E7CB', // In Process - Yellowish
+    '#AED8AE', // Completed - Green
+    '#CBE5FF', // Fitting - Blue
+    '#FCC6C4', // Delivered - Pink/Red
+  ];
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const toggleDropdown = (e) => {
-    e.stopPropagation();
-    setShowDropdown(!showDropdown);
+  // Helper to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const d = new Date(dateString);
+    return d.toLocaleDateString('en-GB'); // DD/MM/YYYY
   };
 
-  const handleStatusChange = (e, newStatus) => {
-    e.stopPropagation();
-    updateOrderStatus(order._id, newStatus);
-    setShowDropdown(false);
+  // Helper for tag styles
+  const getTagStyle = (tagName) => {
+    if (!tagName) return { bg: '#F3F4F6', text: '#4B5563' };
+    
+    // Find the tag definition from context
+    const tagDef = availableTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+    
+    if (tagDef && tagDef.color) {
+        return { 
+            bg: tagDef.color + '20', // ~12% opacity hex
+            text: tagDef.color 
+        };
+    }
+
+    // Fallbacks for legacy/unmatched tags
+    const lower = tagName.toLowerCase();
+    if (lower === 'urgent') return { bg: 'rgba(227, 80, 57, 0.05)', text: '#E35039' };
+    if (lower === 'delicate') return { bg: 'rgba(100, 92, 218, 0.05)', text: '#645CDA' };
+    if (lower === 'repair') return { bg: 'rgba(30, 136, 229, 0.05)', text: '#1E88E5' };
+    return { bg: 'rgba(88, 88, 203, 0.05)', text: '#5858CB' }; // Default
   };
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData("text/plain", order._id);
   };
 
-  
-  
-  const formatStatus = (status) => {
-    if (!status) return 'NEW';
-    return status.replace(/_/g, ' ').toUpperCase();
-  };
-
-  const getNameSize = (text) => {
-    if (!text) return 'text-[15px]';
-    const len = text.length;
-    if (len > 25) return 'text-[12px]';
-    if (len > 18) return 'text-[13px]';
-    return 'text-[15px]';
-  };
-
-  const getItemSize = (text) => {
-    if (!text) return 'text-xs';
-    if (text.length > 20) return 'text-[10px]';
-    return 'text-xs';
-  };
-
-  const nameText = order.customerName || order.title;
-  const itemText = order.type || order.dressType;
-  const statusText = formatStatus(order.status);
+  // Find current status index
+  const currentStatusIndex = columns.findIndex(c => c.value === order.status);
 
   return (
     <div
-      className="kanban-card"
+      className="bg-white rounded-lg shadow-[0px_0px_4px_rgba(80,69,230,0.1)] p-[12px] w-full max-w-[204px] flex flex-col gap-[10px] cursor-pointer hover:shadow-md transition-shadow border border-transparent hover:border-gray-100"
       draggable="true"
       onDragStart={handleDragStart}
       onClick={() => onEdit(order)}
     >
-      <div className="flex flex-col w-full gap-3">
-        {/* Header: ID and Status */}
-        <div className="flex flex-wrap justify-between items-center w-full gap-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></div>
-            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-              {order.orderId || '#ORD-XXXX'}
-            </span>
-          </div>
-          
-          <div className="relative group" ref={dropdownRef}>
+      {/* Header: Order ID and Green Dot */}
+      <div className="flex justify-between items-center w-full">
+        <span className="text-[#B5B5B5] text-[12px] font-inter leading-[15px]">
+            {order.orderId || '#ORD-XXXX'}
+        </span>
+        <div 
+            className={`relative w-[32px] h-[18px] rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+                order.paymentStatus === 'Pending' 
+                ? 'bg-[#E5E7EB]' // Gray for Pending/Off
+                : 'bg-[#3C965D]' // Green for Paid/On
+            }`}
+            onClick={(e) => {
+                e.stopPropagation();
+                const newStatus = order.paymentStatus === 'Pending' ? 'Paid' : 'Pending';
+                updateOrder(order._id, { paymentStatus: newStatus });
+            }}
+            title={`Toggle Payment: ${order.paymentStatus || 'Paid'}`}
+        >
             <div 
-              onClick={toggleDropdown}
-              className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded font-bold text-blue-600 uppercase tracking-wide border border-blue-100 whitespace-nowrap max-w-full overflow-hidden text-ellipsis cursor-pointer hover:bg-blue-100 transition-colors"
-            >
-               <span className="text-[10px]">
-                {statusText}
-               </span>
-               <svg className={`w-3 h-3 text-blue-500 shrink-0 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
-               </svg>
-            </div>
-
-            {showDropdown && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-[100] py-1 max-h-60 overflow-y-auto">
-                {columns.map((col) => (
-                  <div
-                    key={col.id || col.value}
-                    onClick={(e) => handleStatusChange(e, col.value)}
-                    className={`px-4 py-2 text-xs font-medium cursor-pointer hover:bg-gray-50 flex items-center justify-between ${
-                      order.status === col.value ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                    }`}
-                  >
-                    <span>{col.title}</span>
-                    {order.status === col.value && (
-                       <svg className="w-3 h-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                       </svg>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Body: Name */}
-        <h4 className={`font-medium text-gray-900 leading-tight w-full breaking-words ${getNameSize(nameText)}`}>
-          {nameText}
-        </h4>
-
-        {/* Footer: Item and Date */}
-        <div className="flex items-center justify-between w-full mt-auto gap-2">
-          {/* Tag replaces Dress Type position - Minimalist style */}
-          <div className="flex items-center max-w-[60%]">
-             <div className="w-1.5 h-1.5 rounded-full bg-[#E35039] shrink-0 mr-1.5"></div>
-             <span className="text-[11px] font-medium text-[#E35039] tracking-tight truncate">
-               {order.tags && order.tags.length > 0 ? order.tags[0] : 'High Priority'}
-             </span>
-          </div>
-
-          {/* Date Pill */}
-          <div className="flex items-center gap-1.5 bg-white/80 border border-gray-200 rounded px-2 py-1 ml-auto shrink-0">
-             <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-             </svg>
-              <span className="text-xs font-medium text-gray-600">
-                {(() => {
-                  const dateToUse = order.deliveryDate || order.createdAt;
-                  if (!dateToUse) return 'N/A';
-                  const d = new Date(dateToUse);
-                  const day = String(d.getDate()).padStart(2, '0');
-                  const month = String(d.getMonth() + 1).padStart(2, '0');
-                  const year = d.getFullYear();
-                  return `${day}-${month}-${year}`;
-                })()}
-              </span>
-          </div>
+                className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out transform ${
+                    order.paymentStatus === 'Pending' 
+                    ? 'translate-x-[0px]' 
+                    : 'translate-x-[14px]'
+                }`}
+            ></div>
         </div>
       </div>
+
+      {/* Customer Name and Phone Icon */}
+      <div className="flex justify-between items-center w-full">
+        <h4 className="font-inter font-medium text-[14px] leading-[17px] text-[#424242] truncate max-w-[130px]" title={order.customerName}>
+            {order.customerName || 'Unknown'}
+        </h4>
+        <div className="w-[24px] h-[24px] flex items-center justify-center">
+            {/* Phone Icon */}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[#5858CB]">
+                 <path d="M10.4 8.7C9.75 8.7 9.15 8.6 8.55 8.4C8.35 8.35 8.1 8.4 7.95 8.55L7 9.75C5.45 8.95 4.05 7.55 3.25 6L4.45 5.05C4.6 4.9 4.65 4.65 4.6 4.45C4.4 3.85 4.3 3.25 4.3 2.6C4.3 2.25 4.05 2 3.7 2H2.6C2.25 2 2 2.25 2 2.6C2 7.75 6.25 12 11.4 12C11.75 12 12 11.75 12 11.4V10.3C12 9.95 11.75 9.7 11.4 9.7H10.4V8.7Z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        </div>
+      </div>
+
+      {/* Date */}
+      <div className="text-[#B5B5B5] text-[14px] font-inter leading-[17px]">
+        {formatDate(order.deliveryDate || order.createdAt)}
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-[6px] w-full min-h-[19px]">
+        {(order.tags && order.tags.length > 0) ? (
+            order.tags.map((tag, idx) => {
+                const style = getTagStyle(tag);
+                return (
+                    <div 
+                        key={idx}
+                        className="px-[8px] py-[2px] rounded-[8px] flex items-center justify-center h-[19px]"
+                        style={{ backgroundColor: style.bg }}
+                    >
+                        <span className="text-[10px] font-inter font-normal leading-[15px]" style={{ color: style.text }}>
+                            {tag}
+                        </span>
+                    </div>
+                );
+            })
+        ) : (
+            <div className="h-[19px]"></div>
+        )}
+      </div>
+
+      {/* Status Progress Bar (Clickable Locks) */}
+      <div className="flex items-center gap-[6px] w-full mt-[2px] pt-[2px]">
+        {columns.map((col, index) => {
+          
+            const idx = currentStatusIndex === -1 ? 0 : currentStatusIndex;
+            const isActive = index <= idx;
+           
+            
+            const color = isActive ? (STATUS_COLORS[index] || STATUS_COLORS[STATUS_COLORS.length - 1]) : '#F1F1F1';
+
+            return (
+                <div
+                    key={col.value || col.id}
+                    className="h-[12px] flex-1 rounded-[4px] cursor-pointer transition-all hover:scale-y-125"
+                    style={{ backgroundColor: color }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Optimistic update handled by context
+                        updateOrderStatus(order._id, col.value);
+                    }}
+                    title={`Move to ${col.title}`}
+                ></div>
+            );
+        })}
+      </div>
+
     </div>
   );
 };

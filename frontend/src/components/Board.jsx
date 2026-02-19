@@ -7,7 +7,7 @@ const Board = ({ onEditOrder }) => {
   const { columns } = useKanban();
 
   return (
-    <div className="kanban-container mt-6">
+    <div className="kanban-container mt-2">
       {columns.map(column => (
         <Column key={column._id || column.value} column={column} onEditOrder={onEditOrder} />
       ))}

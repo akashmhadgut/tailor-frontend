@@ -4,7 +4,9 @@ import bcrypt from 'bcryptjs';
 const userSchema = mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    name: { type: String, default: 'Admin' }
+    name: { type: String, default: 'Admin' },
+    organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization' },
+    role: { type: String, enum: ['owner', 'admin', 'staff'], default: 'owner' }
 }, { timestamps: true });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {

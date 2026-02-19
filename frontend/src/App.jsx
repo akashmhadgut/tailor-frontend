@@ -21,7 +21,7 @@ const Dashboard = () => {
   const [modalState, setModalState] = useState({ isOpen: false, orderToEdit: null, initialReadOnly: false });
 
   const openAddModal = () => setModalState({ isOpen: true, orderToEdit: null, initialReadOnly: false });
-  const openEditModal = (order, forceEdit = false) => setModalState({ isOpen: true, orderToEdit: order, initialReadOnly: !forceEdit });
+  const openEditModal = (order) => setModalState({ isOpen: true, orderToEdit: order, initialReadOnly: false });
   const closeModal = () => setModalState({ isOpen: false, orderToEdit: null, initialReadOnly: false });
 
   if (loading) {
@@ -29,16 +29,20 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
       <Navbar onOpenModal={openAddModal} />
       
-      <main className="container mx-auto px-4 pb-8">
+      <main className="w-full max-w-[1600px] mx-auto px-12 pt-6 pb-8 flex-1">
         {view === 'board' ? (
           <Board onEditOrder={openEditModal} />
         ) : (
           <ListView onEditOrder={openEditModal} />
         )}
       </main>
+
+      <footer className="w-full py-6 text-center text-gray-400 text-sm font-inter border-t border-gray-100 mt-auto bg-white">
+        © 2026 Powered by Pixelpair Studio. All rights reserved.
+      </footer>
 
       {modalState.isOpen && (
         <OrderModal 

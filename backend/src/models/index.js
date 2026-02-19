@@ -3,4 +3,7 @@ import Status from './Status.js';
 import Order from './Order.js';
 import Customer from './Customer.js';
 
-export { User, Status, Order, Customer };
+import Organization from './Organization.js';
+import Tag from './Tag.js';
+
+export { User, Status, Order, Customer, Organization, Tag };

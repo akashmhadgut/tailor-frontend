@@ -1,151 +1,198 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useKanban } from '../context/KanbanContext';
 import { useNavigate } from 'react-router-dom';
+import CustomDatePicker from './CustomDatePicker';
 
-const DateFilterDropdown = ({ filters, setFilter }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+const FilterPopup = ({ isVisible, onClose }) => {
+  const { filters, setFilter, resetFilters, columns, availableTags } = useKanban();
+  const popupRef = useRef(null);
 
+  // Close when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
+      // Check if click is outside popup AND not on the toggle button (to avoid immediate close/reopen loop)
+      if (popupRef.current && !popupRef.current.contains(event.target) && !event.target.closest('#filter-toggle-btn')) {
+        onClose();
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, onClose]);
 
-  const handleOptionClick = (type) => {
-    setFilter('dateType', type);
-    if (type !== 'custom') {
-      setFilter('date', '');
-      setIsOpen(false);
+  if (!isVisible) return null;
+
+  // Helper to check if a value matches the filter
+  const isStatusActive = (val) => {
+      if (val === 'all') return filters.status.length === 0;
+      return filters.status.includes(val);
+  };
+  const isTagActive = (val) => {
+      if (val === 'all') return filters.tag.length === 0;
+      return filters.tag.includes(val);
+  };
+  const isDateActive = (type) => filters.dateType === type;
+
+  // Options Handlers
+  const handleStatusClick = (val) => {
+    if (val === 'all') {
+        setFilter('status', []);
+    } else {
+        if (filters.status.includes(val)) {
+            setFilter('status', filters.status.filter(s => s !== val));
+        } else {
+            setFilter('status', [...filters.status, val]);
+        }
     }
   };
 
-  const getLabel = () => {
-    switch(filters.dateType) {
-      case 'today': return 'Today';
-      case 'week': return 'This Week';
-      case 'month': return 'This Month';
-      case 'custom': return filters.date ? new Date(filters.date).toLocaleDateString() : 'Pick Date';
-      default: return 'All Dates';
+  const handleTagClick = (val) => {
+    if (val === 'all') {
+        setFilter('tag', []);
+    } else {
+        if (filters.tag.includes(val)) {
+            setFilter('tag', filters.tag.filter(t => t !== val));
+        } else {
+            setFilter('tag', [...filters.tag, val]);
+        }
     }
+  };
+
+  const handleDateClick = (type) => {
+      if (type === 'custom') {
+          setFilter('dateType', 'custom');
+      } else {
+        setFilter('dateType', filters.dateType === type ? 'all' : type);
+        setFilter('date', ''); // clear custom date
+      }
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 hover:bg-white hover:border-gray-300 transition-all"
-      >
-        <span className="truncate">{getLabel()}</span>
-        <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2 animate-fade-in origin-top-right">
-          <div className="space-y-1">
-            {['all', 'today', 'week', 'month'].map(type => (
-              <button
-                key={type}
-                onClick={() => handleOptionClick(type)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                  filters.dateType === type 
-                    ? 'bg-primary-50 text-primary-700 font-medium' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {type === 'all' ? 'All Dates' : type === 'week' ? 'This Week' : type === 'month' ? 'This Month' : 'Today'}
-              </button>
-            ))}
-          </div>
-
-          <div className="border-t border-gray-100 my-2"></div>
-
-          <div className="px-1">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Custom Date</span>
-            <input 
-              type="date" 
-              className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-              value={filters.date}
-              onChange={(e) => {
-                setFilter('dateType', 'custom');
-                setFilter('date', e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()} 
-            />
-          </div>
+    <div 
+      ref={popupRef}
+      className="absolute top-[60px] right-[20px] bg-white rounded-[8px] shadow-[0px_0px_12px_rgba(0,0,0,0.15)] w-[399px] p-[16px] z-[100] flex flex-col gap-[16px]"
+    >
+        {/* Status Section */}
+        <div className="flex flex-col gap-[8px] w-full">
+            <div className="flex flex-wrap gap-[12px]">
+                {[
+                    { label: 'All Status', value: 'all' }, 
+                    { label: 'New', value: 'new' },
+                    { label: 'Order In Progress', value: 'stitching_in_progress' },
+                    { label: 'Order Complete', value: 'done' },
+                    { label: 'Fitting', value: 'fittings' },
+                    { label: 'Delivered', value: 'ready' }
+                ].map((opt) => (
+                    <div 
+                        key={opt.value}
+                        onClick={() => handleStatusClick(opt.value)}
+                        className={`px-[10px] py-[4px] rounded-[8px] cursor-pointer flex items-center justify-center transition-colors ${
+                            isStatusActive(opt.value) 
+                            ? 'bg-[#E0E7FF] text-[#5858CB] font-medium' 
+                            : 'bg-[#F5FAFE] text-[#424242] hover:bg-[#EAF4FF]'
+                        }`}
+                    >
+                        <span className="font-inter text-[14px] leading-[17px]">{opt.label}</span>
+                    </div>
+                ))}
+            </div>
         </div>
-      )}
-      
+
+        {/* Divider */}
+        <div className="w-full h-[1px] bg-[#F1F1F1] rounded-[2px]"></div>
+
+        {/* Labels/Tags Section */}
+        <div className="flex flex-col gap-[8px] w-full">
+            <div className="flex flex-wrap gap-[12px]">
+                {[
+                    { label: 'All Labels', value: 'all' },
+                    { label: 'Urgent', value: 'Urgent' }, 
+                    { label: 'Delicate', value: 'Delicate' }, 
+                    { label: 'Extra Attention', value: 'Extra Attention' }, 
+                    { label: 'Repair', value: 'Repair' }, 
+                    { label: 'VIP', value: 'VIP' }
+                ].map((opt) => (
+                    <div 
+                        key={opt.value}
+                        onClick={() => handleTagClick(opt.value)}
+                        className={`px-[10px] py-[4px] rounded-[8px] cursor-pointer flex items-center justify-center transition-colors ${
+                            isTagActive(opt.value) 
+                            ? 'bg-[#E0E7FF] text-[#5858CB] font-medium' 
+                            : 'bg-[#F5FAFE] text-[#424242] hover:bg-[#EAF4FF]'
+                        }`}
+                    >
+                        <span className="font-inter text-[14px] leading-[17px]">{opt.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-full h-[1px] bg-[#F1F1F1] rounded-[2px]"></div>
+
+        {/* Date Section */}
+        <div className="flex flex-col gap-[8px] w-full">
+            <div className="flex flex-wrap gap-[6px] items-center">
+                 {/* Chips: All Dates, Today, This Week, This Month */}
+                {[
+                    { label: 'All Dates', value: 'all' },
+                    { label: 'Today', value: 'today' },
+                    { label: 'This Week', value: 'week' },
+                    { label: 'This Month', value: 'month' }
+                ].map((opt) => (
+                    <div 
+                        key={opt.value}
+                        onClick={() => handleDateClick(opt.value)}
+                        className={`px-[8px] py-[4px] rounded-[8px] cursor-pointer flex items-center justify-center transition-colors border shrink-0 ${
+                            isDateActive(opt.value) 
+                            ? 'bg-[#E0E7FF] text-[#5858CB] font-medium border-transparent' 
+                            : 'bg-[#F5FAFE] text-[#424242] hover:bg-[#EAF4FF] border-transparent'
+                        }`}
+                    >
+                        <span className="font-inter text-[14px] leading-[17px] whitespace-nowrap">{opt.label}</span>
+                    </div>
+                ))}
+
+                {/* Custom Date Input (Inline) */}
+                {/* Custom Date Input */}
+                <CustomDatePicker 
+                    selectedDate={filters.date} 
+                    onChange={(date) => {
+                        setFilter('dateType', 'custom');
+                        setFilter('date', date);
+                    }}
+                    className={`px-[8px] py-[4px] rounded-[8px] border shrink-0 ${isDateActive('custom') ? 'border-[#5858CB] ring-1 ring-[#5858CB]' : 'border-[#E5E5E5]'} bg-white flex items-center justify-between gap-2 hover:border-[#B5B5B5] transition-colors h-[27px] w-auto min-w-[120px] font-inter text-[12px] leading-[15px]`}
+                />
+            </div>
+        </div>
+
+        {/* Footer: Reset & Apply */}
+        <div className="w-full flex justify-between items-center mt-[16px]">
+             <button
+                onClick={resetFilters}
+                className="text-[#B5B5B5] font-inter text-[14px] hover:text-[#424242] transition-colors"
+             >
+                Reset Filter
+             </button>
+
+             <button 
+                onClick={onClose}
+                className="bg-[#5858CB] text-white font-inter font-medium text-[16px] leading-[18px] px-[32px] py-[9px] rounded-[6px] hover:bg-[#4848A8] transition-colors"
+             >
+                Apply
+             </button>
+        </div>
     </div>
   );
 };
 
-const CustomDropdown = ({ label, options, value, onChange, prefix }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const selectedOption = options.find(opt => opt.value === value);
-  const displayLabel = selectedOption ? `${prefix}${selectedOption.label}` : `${prefix}All`;
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between min-w-[140px] py-2 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 hover:bg-white hover:border-gray-300 transition-all"
-      >
-        <span className="truncate">{displayLabel}</span>
-        <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-1 animate-fade-in origin-top-left">
-          <div className="max-h-60 overflow-y-auto no-scrollbar">
-            {options.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => {
-                  onChange(opt.value);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                  value === opt.value 
-                    ? 'bg-primary-50 text-primary-700 font-medium' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const Navbar = ({ onOpenModal }) => {
-  const { filters, setFilter, resetFilters, view, setView, columns, availableTags, addCustomer, refreshBoard, customersEnabled, customers } = useKanban();
+  const { filters, setFilter, resetFilters, view, setView, columns, addCustomer, refreshBoard, customersEnabled } = useKanban();
   const navigate = useNavigate();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
@@ -156,292 +203,142 @@ const Navbar = ({ onOpenModal }) => {
     navigate('/login');
   };
 
-  // Check if any filter is active to conditionally show/highlight reset
-  const isFilterActive = filters.search !== '' || filters.status !== 'all' || filters.dateType !== 'all' || filters.tag !== 'all';
+  const isFilterActive = filters.search !== '' || filters.status.length > 0 || filters.dateType !== 'all' || filters.tag.length > 0;
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 relative gap-4">
-          
-          {/* Mobile Search Overlay */}
-          {isSearchOpen ? (
-            <div className="absolute inset-0 bg-white z-20 flex items-center px-4 animate-fade-in">
-                <div className="relative w-full flex items-center">
-                    <span className="absolute left-3 text-gray-400">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    </span>
-                    <input 
-                        type="text" 
-                        autoFocus
-                        placeholder="Search orders..." 
-                        className="w-full pl-10 pr-10 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-primary-100 text-gray-800 placeholder-gray-400"
-                        value={filters.search}
-                        onChange={(e) => setFilter('search', e.target.value)}
-                    />
-                    <button 
-                        onClick={() => { setIsSearchOpen(false); setFilter('search', ''); }}
-                        className="absolute right-2 p-1 text-gray-400 hover:text-gray-600"
-                    >
-                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
-            </div>
-          ) : null}
-
-          {/* Left Section: Logo & View Toggle & Search & Filters */}
-          <div className="flex items-center flex-1 gap-3 lg:gap-4 overflow-x-auto no-scrollbar">
-            {/* 1. Logo */}
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-indigo-600 bg-clip-text text-transparent tracking-tight whitespace-nowrap">
-              A-Track
-            </h1>
-            
-            <div className="h-6 w-px bg-gray-200 mx-1 hidden lg:block"></div>
-
-            {/* 2. View Toggle */}
-            <div className="hidden md:flex bg-gray-100/80 p-1 rounded-lg border border-gray-200 shadow-sm shrink-0">
-              <button 
-                onClick={() => setView('board')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${view === 'board' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-              >
-                Board
-              </button>
-              <button 
-                onClick={() => setView('list')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${view === 'list' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-              >
-                List
-              </button>
+    <nav className="bg-white border-b border-[#E5E5E5] sticky top-0 z-50">
+      <div className="w-full max-w-[1600px] mx-auto px-6 py-0 h-[50px] flex items-center justify-between relative">
+        
+        {/* Left Section: Logo & View Switcher */}
+        <div className="flex items-center gap-[30px] h-full">
+           {/* Logo - Added as requested */}
+            <div className="flex items-center gap-2 mr-4 cursor-pointer" onClick={() => navigate('/')}>
+                  <h1 className="text-lg font-bold text-gray-800 tracking-tight">A-Track</h1>
             </div>
 
-            {/* 3. Search Bar */}
-            <div className="hidden md:flex relative group shrink-0">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </span>
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-32 lg:w-44 transition-all"
-                value={filters.search}
-                onChange={(e) => setFilter('search', e.target.value)}
-              />
-            </div>
-
-            {/* 4. Filters Toggle Button */}
-            <div className="hidden md:flex items-center gap-2 shrink-0">
-              <button 
-                onClick={() => setIsFiltersVisible(!isFiltersVisible)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                  isFiltersVisible 
-                  ? 'bg-primary-50 text-primary-700 border-primary-200' 
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                Filters
-                {isFilterActive && !isFiltersVisible && (
-                  <span className="flex h-2 w-2 rounded-full bg-primary-600"></span>
-                )}
-                <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${isFiltersVisible ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Right Section: New Order & Add Customer & Logout */}
-          <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0">
-            <div className="h-8 w-px bg-gray-200 mx-1"></div>
-
-            <button onClick={onOpenModal} className="btn-primary py-2 px-4 shadow-primary-500/20 whitespace-nowrap text-sm">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              New Order
-            </button>
-            
-            <button onClick={() => setIsCustomerModalOpen(true)} className="btn-secondary py-2 px-4 flex items-center gap-2 text-sm whitespace-nowrap">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Customer
-            </button>
-
+            {/* Kanban View */}
             <button 
+                onClick={() => setView('board')}
+                className={`relative h-full flex items-center gap-2 transition-colors ${view === 'board' ? 'text-[#5858CB]' : 'text-[#424242] hover:text-[#5858CB]'}`}
+            >
+                {/* Custom Icon for Kanban */}
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="16" height="16" rx="4" stroke={view === 'board' ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                    <path d="M7 5V13" stroke={view === 'board' ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M11 5V10" stroke={view === 'board' ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M15 5V8" stroke={view === 'board' ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M3 5V10" stroke={view === 'board' ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                </svg>
+                <span className="font-inter text-sm font-normal">Board</span>
+                
+                {/* Active Indicator Underline */}
+                {view === 'board' && (
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#5858CB] rounded-t-sm"></div>
+                )}
+            </button>
+
+            {/* Table View */}
+            <button 
+                onClick={() => setView('list')}
+                className={`relative h-full flex items-center gap-2 transition-colors ${view === 'list' ? 'text-[#5858CB]' : 'text-[#424242] hover:text-[#5858CB]'}`}
+            >
+                {/* Custom Icon for Table */}
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="16" height="16" rx="4" stroke={view === 'list' ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                    <path d="M9 1V17" stroke={view === 'list' ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                    <path d="M1 6H17" stroke={view === 'list' ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                </svg>
+                <span className="font-inter text-sm font-normal">Table</span>
+
+                 {/* Active Indicator Underline (if Table is active) */}
+                 {view === 'list' && (
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#5858CB] rounded-t-sm"></div>
+                )}
+            </button>
+        </div>
+
+        {/* Right Section: Actions */}
+        <div className="flex items-center gap-6">
+            
+            {/* Add Order */}
+            <button 
+                onClick={onOpenModal}
+                className="flex items-center gap-[8px] text-[#424242] hover:text-[#5858CB] transition-colors"
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="4" y="4" width="16" height="16" rx="4" stroke="#AFB7BE" strokeWidth="1"/>
+                    <path d="M12 8V16" stroke="#AFB7BE" strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M8 12H16" stroke="#AFB7BE" strokeWidth="1" strokeLinecap="round"/>
+                </svg>
+                <span className="font-inter text-sm font-normal">Add Order</span>
+            </button>
+
+            {/* Customer Profile */}
+            {/* <button 
+                onClick={() => setIsCustomerModalOpen(true)}
+                className="flex items-center gap-[8px] text-[#424242] hover:text-[#5858CB] transition-colors"
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="4" y="4" width="16" height="16" rx="4" stroke="#AFB7BE" strokeWidth="1"/>
+                    <circle cx="12" cy="10" r="3" stroke="#AFB7BE" strokeWidth="1"/>
+                    <path d="M7 17C7 14.5 9 14 12 14C15 14 17 14.5 17 17" stroke="#AFB7BE" strokeWidth="1" strokeLinecap="round"/>
+                </svg>
+                <span className="font-inter text-sm font-normal">Customer Profile</span>
+            </button> */}
+
+            {/* Filter Toggle */}
+            <button 
+                id="filter-toggle-btn"
+                onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+                className={`flex items-center gap-[8px] transition-colors ${isFiltersVisible || isFilterActive ? 'text-[#5858CB]' : 'text-[#424242] hover:text-[#5858CB]'}`}
+            >
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 7H20" stroke={isFiltersVisible || isFilterActive ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M4 12H20" stroke={isFiltersVisible || isFilterActive ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M4 17H20" stroke={isFiltersVisible || isFilterActive ? "#5858CB" : "#AFB7BE"} strokeWidth="1" strokeLinecap="round"/>
+                    <circle cx="8" cy="7" r="2" fill="white" stroke={isFiltersVisible || isFilterActive ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                    <circle cx="16" cy="12" r="2" fill="white" stroke={isFiltersVisible || isFilterActive ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                    <circle cx="8" cy="17" r="2" fill="white" stroke={isFiltersVisible || isFilterActive ? "#5858CB" : "#AFB7BE"} strokeWidth="1"/>
+                </svg>
+                <span className="font-inter text-sm font-normal">Filter</span>
+            </button>
+
+            {/* Search Task */}
+            <div className="flex items-center bg-[#FAFAFA] border border-[#E5E5E5] rounded-lg w-[160px] h-[32px] px-2 gap-2">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                    <circle cx="6" cy="6" r="4.5" stroke="#AFB7BE" strokeWidth="1"/>
+                    <path d="M9.5 9.5L12.5 12.5" stroke="#AFB7BE" strokeWidth="1" strokeLinecap="round"/>
+                </svg>
+                <input 
+                    type="text" 
+                    placeholder="Search Task" 
+                    className="bg-transparent border-none outline-none text-sm text-[#424242] placeholder-[#B5B5B5] w-full"
+                    value={filters.search}
+                    onChange={(e) => setFilter('search', e.target.value)}
+                />
+            </div>
+            
+             {/* Logout - Added as requested */}
+             <button 
               onClick={handleLogout} 
-              className="ml-1 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200"
+              className="text-[#424242] hover:text-red-600 transition-colors ml-2"
               title="Logout"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
             </button>
-          </div>
 
-          {/* Mobile Actions: Search + New Order + Menu Toggle */}
-          <div className="flex items-center gap-3 md:hidden">
-            {/* Search Icon */}
-            <button 
-                onClick={() => setIsSearchOpen(true)}
-                className="p-2 text-gray-500 hover:text-primary-600 transition-colors rounded-full hover:bg-gray-50"
-            >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            </button>
-
-            <button 
-                onClick={onOpenModal} 
-                className="btn-primary py-1.5 px-3 text-sm flex items-center gap-1 shadow-md shadow-primary-500/20"
-            >
-                <span className="text-lg leading-none font-bold">+</span> 
-                <span className="font-semibold">New</span>
-            </button>
-
-            <button onClick={() => setIsCustomerModalOpen(true)} className="ml-2 bg-white border border-gray-200 px-3 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-              + Cust
-            </button>
-
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-500 hover:text-gray-900 p-1">
-              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
         </div>
+        
+        {/* Render Filter Popup */}
+        <FilterPopup isVisible={isFiltersVisible} onClose={() => setIsFiltersVisible(false)} />
+
       </div>
-
-      {/* Expandable Filter Bar */}
-      {isFiltersVisible && (
-        <div className="bg-gray-50/50 border-b border-gray-200 animate-[slideDown_0.2s_ease-out]">
-          <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center gap-4 overflow-visible">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest shrink-0">Active Filters:</span>
-            
-            <div className="flex items-center gap-3 shrink-0">
-              <CustomDropdown 
-                prefix="Status: "
-                value={filters.status}
-                onChange={(val) => setFilter('status', val)}
-                options={[
-                  { value: 'all', label: 'All Status' },
-                  ...columns.map(col => ({ value: col.value, label: col.title }))
-                ]}
-              />
-
-              <CustomDropdown 
-                prefix="Tag: "
-                value={filters.tag}
-                onChange={(val) => setFilter('tag', val)}
-                options={[
-                  { value: 'all', label: 'All Tags' },
-                  ...(availableTags || []).map(tag => ({ value: tag, label: tag }))
-                ]}
-              />
-
-
-
-              <div className="w-40">
-                <DateFilterDropdown filters={filters} setFilter={setFilter} />
-              </div>
-
-              <div className="h-6 w-px bg-gray-200 mx-1"></div>
-
-              <button 
-                  onClick={resetFilters}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
-                      isFilterActive 
-                      ? 'text-red-600 border-red-200 bg-red-50 hover:bg-red-100 shadow-sm' 
-                      : 'text-gray-400 border-gray-200 bg-white hover:text-gray-600 hover:bg-gray-50'
-                  }`}
-                  title="Reset All Filters"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                      <path d="M3 3v5h5"></path>
-                  </svg>
-                  Reset Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 p-4 space-y-4 animate-[slideDown_0.2s_ease-out] shadow-lg">
-           <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
-              <button 
-                onClick={() => setView('board')}
-                className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'board' ? 'bg-white shadow text-primary-700' : 'text-gray-500'}`}
-              >
-                Board
-              </button>
-              <button 
-                onClick={() => setView('list')}
-                className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'list' ? 'bg-white shadow text-primary-700' : 'text-gray-500'}`}
-              >
-                List
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <select 
-                    className="form-select bg-gray-50 text-sm flex-[1.4] w-0 min-w-0"
-                    value={filters.status}
-                    onChange={(e) => setFilter('status', e.target.value)}
-                >
-                    <option value="all">All Status</option>
-                    {columns.map(col => (
-                    <option key={col._id || col.value} value={col.value}>{col.title}</option>
-                    ))}
-                </select>
-                <div className="flex-[2] w-0 min-w-0 text-sm">
-                    <DateFilterDropdown filters={filters} setFilter={setFilter} />
-                </div>
-                <button 
-                    onClick={resetFilters}
-                    className={`flex-none flex items-center justify-center p-2 rounded-lg border transition-all ${
-                        isFilterActive 
-                        ? 'text-gray-600 border-gray-300 bg-gray-100' 
-                        : 'text-gray-400 border-gray-200 bg-white'
-                    }`}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                        <path d="M3 3v5h5"></path>
-                    </svg>
-                </button>
-              </div>
-
-              <select 
-                className="form-select bg-gray-50 text-sm w-full"
-                value={filters.tag}
-                onChange={(e) => setFilter('tag', e.target.value)}
-              >
-                <option value="all">All Tags</option>
-                {availableTags && availableTags.map(tag => (
-                  <option key={tag} value={tag}>{tag}</option>
-                ))}
-              </select>
-            </div>
-            
-            <button onClick={handleLogout} className="flex items-center justify-center gap-2 w-full p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium">
-              Logout
-            </button>
-        </div>
-      )}
 
       {/* Add Customer Modal */}
       {isCustomerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Add Customer</h3>
@@ -455,7 +352,7 @@ const Navbar = ({ onOpenModal }) => {
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setIsCustomerModalOpen(false)} className="btn-secondary">Cancel</button>
+              <button onClick={() => setIsCustomerModalOpen(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
               <button
                 onClick={async () => {
                   if (!customerForm.name || !customerForm.phone) {
@@ -476,7 +373,7 @@ const Navbar = ({ onOpenModal }) => {
                     alert(err.response?.data?.message || err.message || 'Failed to add customer');
                   }
                 }}
-                className="btn-primary"
+                className="px-4 py-2 bg-[#5858CB] text-white rounded hover:bg-[#4848A8]"
               >
                 Save
               </button>

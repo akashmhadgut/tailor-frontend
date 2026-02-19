@@ -11,7 +11,9 @@ import {
     getCustomers,
     createCustomer,
     updateCustomer,
-    getCustomerByPhone
+
+    getCustomerByPhone,
+    getTags
 } from '../controllers/index.js';
 
 const router = express.Router();
@@ -39,5 +41,8 @@ router.route('/customers')
 
 router.patch('/customers/:id', protect, updateCustomer);
 router.get('/customers/phone/:phone', protect, getCustomerByPhone);
+
+// Tags
+router.get('/tags', protect, getTags);
 
 export default router;
