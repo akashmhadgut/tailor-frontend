@@ -23,9 +23,11 @@ const Column = ({ column, onEditOrder }) => {
     stitching_in_progress: 'col-process',
     fittings: 'col-task-blue',
     done: 'col-completed',
+    completed: 'col-completed', // Added
     deliveries: 'col-completed',
     new_task_blue: 'col-task-blue',
     ready: 'col-task-red',
+    ready_for_pickup: 'col-task-red', // Added
     new_task_red: 'col-task-red',
     default: 'col-new'
   };
