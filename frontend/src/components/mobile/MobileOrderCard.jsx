@@ -45,7 +45,7 @@ const MobileOrderCard = ({ order, onClick }) => {
       onDragEnd={(e) => {
         e.currentTarget.classList.remove('opacity-50');
       }}
-      className="bg-white rounded-[12px] p-[16px] mb-[12px] shadow-[0px_2px_8px_rgba(0,0,0,0.04)] border border-transparent active:scale-[0.98] transition-all cursor-pointer touch-none"
+      className="bg-white rounded-[12px] p-[16px] mb-[12px] shadow-[0px_2px_8px_rgba(0,0,0,0.04)] border border-transparent active:scale-[0.98] transition-all cursor-pointer"
     >
       {/* Header: Order ID and Payment Toggle */}
       <div className="flex justify-between items-center mb-[4px]">
