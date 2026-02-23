@@ -760,7 +760,7 @@ const OrderModal = ({ onClose, orderToEdit = null, initialReadOnly = false }) =>
           </div>
 
           <div className="pt-6 border-t border-gray-100 flex justify-between items-center gap-4">
-             {isEditMode && !isReadOnly && (
+             {/* {isEditMode && !isReadOnly && (
                <button 
                  type="button" 
                  onClick={handleDelete} 
@@ -771,7 +771,7 @@ const OrderModal = ({ onClose, orderToEdit = null, initialReadOnly = false }) =>
                  </svg>
                  Delete Order
                </button>
-             )}
+             )} */}
              <div className="flex gap-3 ml-auto">
                 <button type="button" onClick={onClose} className="px-6 py-2 border-2 border-gray-100 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition-colors">{isReadOnly ? 'Close' : 'Cancel'}</button>
                 {isReadOnly ? (
