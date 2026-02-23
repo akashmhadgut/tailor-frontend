@@ -190,12 +190,10 @@ const FilterPopup = ({ isVisible, onClose }) => {
 };
 
 
-const Navbar = ({ onOpenModal }) => {
+const Navbar = ({ onOpenModal, onOpenCustomerModal }) => {
   const { filters, setFilter, resetFilters, view, setView, columns, addCustomer, refreshBoard, customersEnabled } = useKanban();
   const navigate = useNavigate();
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -273,9 +271,8 @@ const Navbar = ({ onOpenModal }) => {
                 <span className="font-inter text-sm font-normal">Add Order</span>
             </button>
 
-            {/* Customer Profile */}
-            {/* <button 
-                onClick={() => setIsCustomerModalOpen(true)}
+            <button 
+                onClick={onOpenCustomerModal}
                 className="flex items-center gap-[8px] text-[#424242] hover:text-[#5858CB] transition-colors"
             >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -283,8 +280,8 @@ const Navbar = ({ onOpenModal }) => {
                     <circle cx="12" cy="10" r="3" stroke="#AFB7BE" strokeWidth="1"/>
                     <path d="M7 17C7 14.5 9 14 12 14C15 14 17 14.5 17 17" stroke="#AFB7BE" strokeWidth="1" strokeLinecap="round"/>
                 </svg>
-                <span className="font-inter text-sm font-normal">Customer Profile</span>
-            </button> */}
+                <span className="font-inter text-sm font-normal">Add Customer</span>
+            </button>
 
             {/* Filter Toggle */}
             <button 
@@ -335,52 +332,6 @@ const Navbar = ({ onOpenModal }) => {
         <FilterPopup isVisible={isFiltersVisible} onClose={() => setIsFiltersVisible(false)} />
 
       </div>
-
-      {/* Add Customer Modal */}
-      {isCustomerModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add Customer</h3>
-              <button onClick={() => setIsCustomerModalOpen(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
-            </div>
-
-            <div className="space-y-3">
-              <input type="text" placeholder="Name" className="form-input" value={customerForm.name} onChange={(e) => setCustomerForm(prev => ({...prev, name: e.target.value}))} />
-              <input type="text" placeholder="Phone" className="form-input" value={customerForm.phone} onChange={(e) => setCustomerForm(prev => ({...prev, phone: e.target.value}))} />
-              <input type="text" placeholder="Address" className="form-input" value={customerForm.address} onChange={(e) => setCustomerForm(prev => ({...prev, address: e.target.value}))} />
-            </div>
-
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setIsCustomerModalOpen(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
-              <button
-                onClick={async () => {
-                  if (!customerForm.name || !customerForm.phone) {
-                    alert('Name and phone are required');
-                    return;
-                  }
-                  if (!customersEnabled) {
-                    alert('Customer API is not available on the current server. Please run the updated backend or test locally.');
-                    return;
-                  }
-                  try {
-                    await addCustomer(customerForm);
-                    try { await refreshBoard(); } catch (e) {}
-                    setCustomerForm({ name: '', phone: '', address: '' });
-                    setIsCustomerModalOpen(false);
-                    alert('Customer added');
-                  } catch (err) {
-                    alert(err.response?.data?.message || err.message || 'Failed to add customer');
-                  }
-                }}
-                className="px-4 py-2 bg-[#5858CB] text-white rounded hover:bg-[#4848A8]"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </nav>
   );
 };

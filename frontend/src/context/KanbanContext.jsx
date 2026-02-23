@@ -203,36 +203,57 @@ export const KanbanProvider = ({ children }) => {
         (order.tags && order.tags.some(t => filters.tag.includes(t)));
 
       let matchesDate = true;
-      const orderDate = new Date(order.deliveryDate);
-      const today = new Date();
       
-      today.setHours(0, 0, 0, 0);
-      
-      if (filters.dateType === 'today') {
-         const year = today.getFullYear();
-         const month = String(today.getMonth() + 1).padStart(2, '0');
-         const day = String(today.getDate()).padStart(2, '0');
-         const localToday = `${year}-${month}-${day}`;
-         matchesDate = order.deliveryDate === localToday;
-      } else if (filters.dateType === 'week') {
-        const current = new Date();
-        const startOfWeek = new Date(current.setDate(current.getDate() - current.getDay()));
-        const endOfWeek = new Date(current.setDate(current.getDate() - current.getDay() + 6));
-        
-        startOfWeek.setHours(0,0,0,0);
-        endOfWeek.setHours(23,59,59,999);
-        
-        const targetDate = new Date(order.deliveryDate + 'T00:00:00');
-        matchesDate = targetDate >= startOfWeek && targetDate <= endOfWeek;
+      // Robust date normalization helper to handle multiple formats
+      const normalizeDate = (input) => {
+        if (!input) return null;
+        try {
+          // If it's already YYYY-MM-DD...
+          if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input.split('T')[0])) {
+             return input.split('T')[0];
+          }
+          // If it's DD-MM-YYYY (like user might enter or store)...
+          if (typeof input === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(input)) {
+             const [d, m, y] = input.split('-');
+             return `${y}-${m}-${d}`;
+          }
+          const d = new Date(input);
+          if (isNaN(d.getTime())) return null;
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        } catch (e) {
+          return null;
+        }
+      };
 
+      const orderDateStr = normalizeDate(order.deliveryDate);
+      const todayStr = normalizeDate(new Date());
+
+      if (!orderDateStr) {
+        matchesDate = filters.dateType === 'all';
+      } else if (filters.dateType === 'today') {
+        matchesDate = orderDateStr === todayStr;
+      } else if (filters.dateType === 'week') {
+        const [y, m, d] = orderDateStr.split('-').map(Number);
+        const target = new Date(y, m - 1, d);
+        
+        const now = new Date();
+        const start = new Date(now.setDate(now.getDate() - now.getDay()));
+        start.setHours(0, 0, 0, 0);
+        
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        
+        matchesDate = target >= start && target <= end;
       } else if (filters.dateType === 'month') {
-        const current = new Date();
-        const targetDate = new Date(order.deliveryDate + 'T00:00:00');
-        matchesDate = 
-          targetDate.getMonth() === current.getMonth() && 
-          targetDate.getFullYear() === current.getFullYear();
-      } else if (filters.dateType === 'custom') {
-        matchesDate = !filters.date || order.deliveryDate === filters.date;
+        const [y, m] = orderDateStr.split('-').map(String);
+        const now = new Date();
+        const curY = String(now.getFullYear());
+        const curM = String(now.getMonth() + 1).padStart(2, '0');
+        matchesDate = (y === curY && m === curM);
+      } else if (filters.dateType === 'custom' || filters.dateType === 'date') {
+        const filterDateStr = normalizeDate(filters.date);
+        matchesDate = !filterDateStr || orderDateStr === filterDateStr;
       }
 
       return matchesSearch && matchesStatus && matchesDate && matchesTag;

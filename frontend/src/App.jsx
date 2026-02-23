@@ -5,8 +5,11 @@ import Navbar from './components/Navbar';
 import Board from './components/Board';
 import ListView from './components/ListView';
 import OrderModal from './components/OrderModal';
+import CustomerModal from './components/CustomerModal';
 import OrderDetails from './components/OrderDetails';
 import LoginPage from './pages/LoginPage';
+import MobileDashboard from './components/mobile/MobileDashboard';
+import useIsMobile from './hooks/useIsMobile';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -18,19 +21,44 @@ const ProtectedRoute = ({ children }) => {
 
 const Dashboard = () => {
   const { view, loading } = useKanban();
+  const isMobile = useIsMobile();
   const [modalState, setModalState] = useState({ isOpen: false, orderToEdit: null, initialReadOnly: false });
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   const openAddModal = () => setModalState({ isOpen: true, orderToEdit: null, initialReadOnly: false });
   const openEditModal = (order) => setModalState({ isOpen: true, orderToEdit: order, initialReadOnly: false });
   const closeModal = () => setModalState({ isOpen: false, orderToEdit: null, initialReadOnly: false });
 
+  const openCustomerModal = () => setIsCustomerModalOpen(true);
+  const closeCustomerModal = () => setIsCustomerModalOpen(false);
+
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
+  // Mobile View
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-white">
+        <MobileDashboard onOpenCustomerModal={openCustomerModal} />
+        {modalState.isOpen && (
+          <OrderModal 
+            onClose={closeModal} 
+            orderToEdit={modalState.orderToEdit} 
+            initialReadOnly={modalState.initialReadOnly}
+          />
+        )}
+        {isCustomerModalOpen && (
+          <CustomerModal onClose={closeCustomerModal} />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop View
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
-      <Navbar onOpenModal={openAddModal} />
+      <Navbar onOpenModal={openAddModal} onOpenCustomerModal={openCustomerModal} />
       
       <main className="w-full max-w-[1600px] mx-auto px-12 pt-6 pb-8 flex-1">
         {view === 'board' ? (
@@ -50,6 +78,9 @@ const Dashboard = () => {
           orderToEdit={modalState.orderToEdit} 
           initialReadOnly={modalState.initialReadOnly}
         />
+      )}
+      {isCustomerModalOpen && (
+        <CustomerModal onClose={closeCustomerModal} />
       )}
     </div>
   );
