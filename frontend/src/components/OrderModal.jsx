@@ -440,16 +440,19 @@ const OrderModal = ({ onClose, orderToEdit = null, initialReadOnly = false }) =>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">Payment Status</label>
-              <select 
-                name="paymentStatus" 
-                value={formData.paymentStatus} 
-                onChange={(e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }))} 
-                disabled={isReadOnly} 
-                className={`w-full h-11 px-4 border rounded-xl text-sm transition-all appearance-none outline-none bg-white ${isReadOnly ? 'bg-gray-50 border-gray-100 cursor-not-allowed text-gray-400' : 'border-gray-200 focus:border-[#5858CB] focus:ring-4 focus:ring-[#5858CB]/5 text-gray-900 font-medium'}`}
-              >
-                <option value="Pending">Pending</option>
-                <option value="Paid">Paid</option>
-              </select>
+              <div className="relative">
+                <select 
+                  name="paymentStatus" 
+                  value={formData.paymentStatus} 
+                  onChange={(e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }))} 
+                  disabled={isReadOnly} 
+                  className={`w-full h-11 px-4 border rounded-xl text-sm transition-all appearance-none outline-none bg-white ${isReadOnly ? 'bg-gray-50 border-gray-100 cursor-not-allowed text-gray-400' : 'border-gray-200 focus:border-[#5858CB] focus:ring-4 focus:ring-[#5858CB]/5 text-gray-900 font-medium'}`}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Paid">Paid</option>
+                </select>
+                {!isReadOnly && <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>}
+              </div>
             </div>
           </div>
 
