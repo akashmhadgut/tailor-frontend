@@ -265,14 +265,17 @@ const OrderModal = ({ onClose, orderToEdit = null, initialReadOnly = false }) =>
                 )}
               </div>
             </div>
-            <button className="p-2 transition-colors text-gray-400">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 4L8 4C6.89543 4 6 4.89543 6 6V18C6 19.1046 6.89543 20 8 20H17C18.1046 20 19 19.1046 19 18V6C19 4.89543 18.1046 4 17 4H16" stroke="#AFB7BE" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M10.5 6H14.5C15.3284 6 16 5.32843 16 4.5C16 3.67157 15.3284 3 14.5 3H10.5C9.67157 3 9 3.67157 9 4.5C9 5.32843 9.67157 6 10.5 6Z" stroke="#AFB7BE" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M10 11H15" stroke="#AFB7BE" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M10 15H15" stroke="#AFB7BE" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
+            {isEditMode && !isReadOnly && (
+              <button 
+                onClick={handleDelete}
+                className="p-2 transition-colors text-red-400 hover:text-red-500 active:scale-90"
+                title="Delete Order"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -757,12 +760,15 @@ const OrderModal = ({ onClose, orderToEdit = null, initialReadOnly = false }) =>
           </div>
 
           <div className="pt-6 border-t border-gray-100 flex justify-between items-center gap-4">
-             {isEditMode && (
+             {isEditMode && !isReadOnly && (
                <button 
                  type="button" 
                  onClick={handleDelete} 
-                 className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors"
+                 className="px-6 py-2 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100 flex items-center gap-2 active:scale-95"
                >
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                   <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                 </svg>
                  Delete Order
                </button>
              )}
