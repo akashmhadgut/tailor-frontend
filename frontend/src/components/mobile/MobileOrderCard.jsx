@@ -2,8 +2,17 @@ import React, { useState } from 'react';
 import { useKanban } from '../../context/KanbanContext';
 
 const MobileOrderCard = ({ order, onClick }) => {
-  const { updateOrder } = useKanban();
+  const { updateOrder, columns, updateOrderStatus } = useKanban();
   const [toggleLoading, setToggleLoading] = useState(false);
+
+  // Status colors matching Card.jsx
+  const STATUS_COLORS = [
+    '#D4CDFF', // New - Purple
+    '#F8E7CB', // In Process - Yellowish
+    '#AED8AE', // Completed - Green
+    '#CBE5FF', // Fitting - Blue
+    '#FCC6C4', // Delivered - Pink/Red
+  ];
 
   // Format date if it exists
   const formatDate = (dateString) => {
@@ -33,13 +42,15 @@ const MobileOrderCard = ({ order, onClick }) => {
     }
   };
 
+  // Find current status index
+  const currentStatusIndex = columns.findIndex(c => c.value === order.status);
+
   return (
     <div 
       onClick={onClick}
       draggable="true"
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", order._id);
-        // Optional: Add a class for visual feedback
         e.currentTarget.classList.add('opacity-50');
       }}
       onDragEnd={(e) => {
@@ -119,22 +130,21 @@ const MobileOrderCard = ({ order, onClick }) => {
 
       {/* Progress Segments */}
       <div className="flex gap-[8px] mt-2">
-        {['new', 'in_progress', 'completed', 'fitting', 'ready_for_pickup'].map((statusKey, index) => {
-          const STATUS_COLORS = ['#D4CDFF', '#F8E7CB', '#AED8AE', '#CBE5FF', '#FCC6C4'];
-          const statuses = ['new', 'in_progress', 'completed', 'fitting', 'ready_for_pickup'];
-          const currentStatusIndex = statuses.indexOf(order.status || 'new');
-          const isActive = index <= (currentStatusIndex === -1 ? 0 : currentStatusIndex);
+        {columns.map((col, index) => {
+          const idx = currentStatusIndex === -1 ? 0 : currentStatusIndex;
+          const isActive = index <= idx;
           const color = isActive ? (STATUS_COLORS[index] || STATUS_COLORS[STATUS_COLORS.length - 1]) : '#F1F1F1';
 
           return (
             <div 
-              key={statusKey}
+              key={col.value || col._id}
               className="h-[12px] flex-1 rounded-[4px] transition-all cursor-pointer active:scale-95 shadow-sm"
               style={{ backgroundColor: color }}
               onClick={(e) => {
                 e.stopPropagation();
-                updateOrder(order._id, { status: statusKey });
+                updateOrderStatus(order._id, col.value);
               }}
+              title={`Move to ${col.title}`}
             ></div>
           );
         })}

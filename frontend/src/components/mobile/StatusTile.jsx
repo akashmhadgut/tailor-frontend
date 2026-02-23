@@ -46,7 +46,7 @@ const StatusTile = ({ title, count, color, pattern, onClick, onDrop }) => {
       className={`${bgColorMap[color]} relative w-full h-[90px] rounded-[6px] overflow-hidden cursor-pointer shadow-sm active:scale-95 transition-all p-3 flex flex-col justify-between ${isOver ? 'ring-4 ring-[#5858CB]/30 scale-105' : ''}`}
     >
       {/* Background Pattern */}
-      <div className="absolute top-[-8px] left-[100px] w-[69px] h-[69px] pointer-events-none">
+      <div className="absolute top-[-10px] right-[-10px] w-[75px] h-[75px] pointer-events-none opacity-80">
         {React.cloneElement(pattern, { width: "100%", height: "100%" })}
       </div>
 
